@@ -10,14 +10,16 @@ A language made to be fast and simple.
 
 ```env
 CPP_COMPILER="your-cpp-compiler"
+C_COMPILER="c_compiler"
 ```
 
-2. Run Python to compile the frontend
+2. Run Python to compile
 
 > There is no backend yet, so you can't compile backend
 
 ```bash
 python build/build.py frontend
+python build/build.py vm
 ```
 
 ## Expected Syntax

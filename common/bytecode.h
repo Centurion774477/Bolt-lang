@@ -5,8 +5,8 @@ extern "C" {
 #endif
 
 typedef enum {
-
-} Tokens;
+    OP_ADD
+} Operations;
 
 #ifdef __cplusplus
 }
