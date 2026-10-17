@@ -20,9 +20,9 @@ CPP_COMPILER="your-cpp-compiler"
 python build/build.py frontend
 ```
 
-## Expected Syxtax
+## Expected Syntax
 
-> Syntax may vary, as Bolt is in very development stage
+> Syntax may vary, as Bolt is in an early stage of development
 
 ```
 fn add(a: i32, b: i32) -> i32 {
