@@ -1,6 +1,63 @@
+#if !defined(_WIN32)
+#define _POSIX_C_SOURCE 199309L
+#endif
+
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef _WIN32
+#include <windows.h>
+typedef LARGE_INTEGER TimerPoint;
+
+static LARGE_INTEGER timer_frequency;
+
+static int timer_init(void) {
+    return QueryPerformanceFrequency(&timer_frequency) != 0 &&
+           timer_frequency.QuadPart > 0;
+}
+
+static int timer_now(TimerPoint* point) {
+    return QueryPerformanceCounter(point) != 0;
+}
+
+static uint64_t elapsed_nanoseconds(TimerPoint start, TimerPoint end) {
+    uint64_t elapsed_ticks = (uint64_t)(end.QuadPart - start.QuadPart);
+    uint64_t frequency = (uint64_t)timer_frequency.QuadPart;
+    uint64_t elapsed_seconds = elapsed_ticks / frequency;
+    uint64_t remaining_ticks = elapsed_ticks % frequency;
+
+    return elapsed_seconds * 1000000000ULL +
+           remaining_ticks * 1000000000ULL / frequency;
+}
+#else
+#include <time.h>
+typedef struct timespec TimerPoint;
+
+static int timer_init(void) {
+    return 1;
+}
+
+static int timer_now(TimerPoint* point) {
+    return clock_gettime(CLOCK_MONOTONIC, point) == 0;
+}
+
+static uint64_t elapsed_nanoseconds(TimerPoint start, TimerPoint end) {
+    int64_t seconds = (int64_t)(end.tv_sec - start.tv_sec);
+    int64_t nanoseconds = (int64_t)(end.tv_nsec - start.tv_nsec);
+    return (uint64_t)(seconds * 1000000000LL + nanoseconds);
+}
+#endif
+
+static void report_timer_error(const char* operation) {
+#ifdef _WIN32
+    fprintf(stderr, "%s failed (Windows error %lu).\n", operation,
+            (unsigned long)GetLastError());
+#else
+    perror(operation);
+#endif
+}
 
 #include "vector.h"
 #include "executor.h"
@@ -41,8 +98,36 @@ int main(void) {
     DynamicStack stack;
     init_stack(&stack, 64);
 
+    TimerPoint start, end;
+    if (!timer_init()) {
+        report_timer_error("Timer initialization");
+        free_stack(&stack);
+        free(bytecode);
+        return 1;
+    }
+    if (!timer_now(&start)) {
+        report_timer_error("Timer start");
+        free_stack(&stack);
+        free(bytecode);
+        return 1;
+    }
+
     execute(&stack, bytecode);
+
+    if (!timer_now(&end)) {
+        report_timer_error("Timer end");
+        free_stack(&stack);
+        free(bytecode);
+        return 1;
+    }
+
     int result = peek(&stack);
+
+    uint64_t elapsed = elapsed_nanoseconds(start, end);
+
+    printf("\nVM Execution time: %" PRIu64 " nanoseconds.\n", elapsed);
+    printf("Or: %" PRIu64 ".%04" PRIu64 " ms.\n",
+           elapsed / 1000000, (elapsed % 1000000) / 100);
 
     free_stack(&stack);
     free(bytecode);
