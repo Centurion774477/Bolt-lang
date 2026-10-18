@@ -11,4 +11,4 @@
 #include <variant>
 #include <iostream>
 
-int generateBytecode(AST ast);
+int generateBytecode(const AST& ast, const std::string& path = "main.bvm");

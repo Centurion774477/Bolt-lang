@@ -8,34 +8,52 @@
 #include <vector>
 #include <variant>
 #include <iostream>
+#include <type_traits>
 
-int generateBytecode(AST ast) {
+namespace {
+    void emit_u8(std::vector<uint8_t>& out, uint8_t v) {
+        out.push_back(v);
+    }
+
+    void emit_u32(std::vector<uint8_t>& out, uint32_t v) {
+        out.push_back(static_cast<uint8_t>((v >> 0) & 0xFF));
+        out.push_back(static_cast<uint8_t>((v >> 8) & 0xFF));
+        out.push_back(static_cast<uint8_t>((v >> 16) & 0xFF));
+        out.push_back(static_cast<uint8_t>((v >> 24) & 0xFF));
+    }
+}
+
+int generateBytecode(const AST& ast, const std::string& path) {
     std::vector<uint8_t> bytecode;
-    std::ofstream output("main.bvm", std::ios::out | std::ios::binary);
+    bytecode.reserve(ast.nodes.size() * 8);
 
-    if (!output.is_open()) {
+    for (const auto& node : ast.nodes) {
+        std::visit([&](const auto& value) {
+            using T = std::decay_t<decltype(value)>;
+
+            if constexpr (std::is_same_v<T, VarDecl>) {
+                emit_u8(bytecode, 0x09);
+                emit_u32(bytecode, static_cast<uint32_t>(value.name_index));
+                emit_u8(bytecode, 0x00);
+                emit_u8(bytecode, 0x01);
+                emit_u32(bytecode, static_cast<uint32_t>(value.initializer));
+            } else if constexpr (std::is_same_v<T, Literal>) {
+                emit_u8(bytecode, 0x10);
+                emit_u32(bytecode, static_cast<uint32_t>(value.value));
+            }
+        }, node.data);
+    }
+
+    std::ofstream output(path, std::ios::binary);
+    if (!output) {
         std::cerr << "Bolt File Error: couldn't open output file.\n";
         return 1;
     }
 
-    size_t current = 0;
-    while (current < ast.nodes.size()) {
-        if (auto vardecl = std::get_if<VarDecl>(&(ast.nodes[current].data))) {
-            bytecode.push_back(0x09); // identifier
-            bytecode.push_back(static_cast<uint8_t>(vardecl->name_index));
-            bytecode.push_back(0x00);
-            bytecode.push_back(0x01); // separator: name 0x00 0x01 value
-            bytecode.push_back(static_cast<uint8_t>(vardecl->initializer));
-        } else if (auto literal = std::get_if<Literal>(&(ast.nodes[current].data))) {
-            bytecode.push_back(0x10); // Identifier
-            bytecode.push_back(static_cast<uint8_t>(literal->value)); 
-        }
-        current++;
-    }
-
-    output.write(reinterpret_cast<const char*>(bytecode.data()), bytecode.size());
+    output.write(reinterpret_cast<const char*>(bytecode.data()),
+                 static_cast<std::streamsize>(bytecode.size()));
     output.close();
-    
+
     std::cout << "Bytecode written successfully.\n";
     return 0;
 }
