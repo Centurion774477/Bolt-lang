@@ -5,6 +5,8 @@
 #include <variant>
 #include <vector>
 
+#include "../lexer/tokens.hpp"
+
 using NodeId = uint32_t;
 
 struct Literal {
@@ -12,14 +14,14 @@ struct Literal {
 };
 
 struct BinaryOp {
-    char op;
     NodeId left;
     NodeId right;
+    char op;
 };
 
 struct VarDecl {
-    int name_index;
     NodeId initializer;
+    int name_index;
 };
 
 struct Node {
@@ -27,9 +29,9 @@ struct Node {
 };
 
 struct AST {
+    std::unordered_map<std::string, int> string_to_index;
     std::vector<Node> nodes;
     std::vector<std::string> strings;
-    std::unordered_map<std::string, int> string_to_index;
 
     NodeId add_node(Node n) {
         nodes.push_back(n);
@@ -49,8 +51,8 @@ struct AST {
 };
 
 struct ParserState {
-    const std::vector<Token>& tokens;
     size_t index = 0;
+    const std::vector<Token>& tokens;
 
     Token peek() const {
         if (index >= tokens.size())

@@ -20,7 +20,7 @@ NodeId parse_expression(ParserState& state, AST& ast) {
 
 AST createAST(std::vector<Token> tokens) {
     AST ast;
-    ParserState state{tokens};
+    ParserState state{0, tokens};
 
     while (state.peek().type != tokens::eof) {
         Token actual = state.peek();
