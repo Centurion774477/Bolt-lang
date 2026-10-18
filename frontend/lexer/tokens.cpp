@@ -10,6 +10,7 @@ std::vector<Token> tokenize(std::string src) {
     std::vector<Token> result;
     size_t i = 0;
     size_t length = src.size();
+    result.reserve(length / 4); 
 
     while (i < length) {
         char actual = src[i];
@@ -38,32 +39,45 @@ std::vector<Token> tokenize(std::string src) {
             continue;
         }
 
-        std::string buffer = "";
-        while (i < length && src[i] != ' ' && src[i] != '\t' && src[i] != '\n' && src[i] != '\r' &&
-               src[i] != '+' && src[i] != '-' && src[i] != '*' && src[i] != '/' && src[i] != '=') {
-            buffer += src[i];
-            i++;
+        size_t start = i;
+        while (i < length && actual != ' ' && actual != '\t' && actual != '\n' && actual != '\r' &&
+               actual != '+' && actual != '-' && actual != '*' && actual != '/' && actual != '=') {
+
+            if (++i >= length) {
+                break; 
+            }
+            actual = src[i];
         }
 
-        if (!buffer.empty()) {
-            if (keyword_mapping.count(buffer) && keyword_mapping[buffer] == 0) {
+        size_t token_len = i - start;
+
+        if (token_len > 0) {
+            std::string_view view(src.data() + start, token_len);
+
+            if (view == "var") {
                 t.type = tokens::var;
-            } else if (buffer.size() >= 2 && 
-                       (buffer.front() == buffer.back()) && 
-                       (buffer.front() == '"' || buffer.front() == '\'')) {
-                t.type = tokens::c_str;
-                buffer.pop_back();
-                buffer.erase(0, 1);
-                t.value = buffer;
+
+            } else if (token_len >= 2 && 
+                     (view.front() == view.back()) && 
+                     (view.front() == '"' || view.front() == '\'')) {
+                if (token_len == 3) { // '|" + char + '|"
+                    t.type = tokens::c_char;
+                } else {
+                    t.type = tokens::c_str;
+                }
+                t.value = src.substr(start + 1, token_len - 2);
+
             } else { 
                 t.type = tokens::identifier;
-                t.value = buffer;
+                t.value = src.substr(start, token_len);
             }
             result.push_back(t);
         } else {
             i++;
         }
     }
+
+    result.emplace_back(Token{tokens::eof});
 
     return result;
 }

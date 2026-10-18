@@ -1,14 +1,16 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <variant>
 #include "../frontend/lexer/tokens.hpp"
+#include "../frontend/astgen/astgen.hpp"
 #include "print.hpp"
 
 #include <array>
 #include <string_view>
 
 std::string_view tokenToString(tokens type) {
-    static constexpr std::array<std::string_view, 9> token_names = {
+    static constexpr std::array<std::string_view, 11> token_names = {
         "var",          // 0
         "c_int",        // 1
         "plus",         // 2
@@ -17,7 +19,9 @@ std::string_view tokenToString(tokens type) {
         "slash",        // 5
         "c_str",        // 6
         "identifier",   // 7
-        "equal"         // 8
+        "equal",        // 8
+        "eof",          // 9
+        "c_char"        // 10
     };
 
     auto index = static_cast<size_t>(type);
@@ -35,4 +39,23 @@ void show(std::vector<Token> vec) {
         std::cout << "    " << tokenToString(t.type) << "[" << t.value << "]\n";
     }
     std::cout << "< END TOKENS; \n";
+}
+
+void show(const AST& ast) {
+    std::cout << "> AST:\n";
+    for (const auto& n : ast.nodes) {
+        if (auto literal = std::get_if<Literal>(&n.data)) {
+            std::cout << "  Literal: " << literal->value << "\n";
+        }
+        else if (auto binop = std::get_if<BinaryOp>(&n.data)) {
+            std::cout << "  Binary Operator: [left] " << binop->left 
+                      << " [op] " << binop->op 
+                      << " [right] " << binop->right << "\n";
+        }
+        else if (auto vardecl = std::get_if<VarDecl>(&n.data)) {
+            std::cout << "  VarDecl: [name] " << ast.strings[vardecl->name_index] 
+                      << " [value_node_index] " << vardecl->initializer << "\n";
+        }
+    }
+    std::cout << "< END AST; \n";
 }

@@ -9,7 +9,9 @@ enum class tokens {
     plus, minus, star, slash,
     c_str,
     identifier,
-    equal
+    equal,
+    eof,
+    c_char
 };
 
 struct Token {
