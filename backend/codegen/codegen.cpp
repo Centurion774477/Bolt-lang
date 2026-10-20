@@ -25,18 +25,19 @@ namespace {
 
 int generateBytecode(const AST& ast, const std::string& path) {
     std::vector<uint8_t> bytecode;
+    std::vector<uint8_t> header;
     bytecode.reserve(ast.nodes.size() * 8);
+    header.reserve(ast.nodes.size() / 8);
+    emit_u8(header, 'B');
+    emit_u8(header, 'L');
+    emit_u8(header, 'T');
 
     for (const auto& node : ast.nodes) {
         std::visit([&](const auto& value) {
             using T = std::decay_t<decltype(value)>;
 
             if constexpr (std::is_same_v<T, VarDecl>) {
-                emit_u8(bytecode, 0x09);
-                emit_u32(bytecode, static_cast<uint32_t>(value.name_index));
-                emit_u8(bytecode, 0x00);
-                emit_u8(bytecode, 0x01);
-                emit_u32(bytecode, static_cast<uint32_t>(value.initializer));
+                
             } else if constexpr (std::is_same_v<T, Literal>) {
                 emit_u8(bytecode, 0x10);
                 emit_u32(bytecode, static_cast<uint32_t>(value.value));
@@ -49,7 +50,9 @@ int generateBytecode(const AST& ast, const std::string& path) {
         std::cerr << "Bolt File Error: couldn't open output file.\n";
         return 1;
     }
-
+    
+    output.write(reinterpret_cast<const char*>(header.data()),
+                 static_cast<std::streamsize>(header.size()));
     output.write(reinterpret_cast<const char*>(bytecode.data()),
                  static_cast<std::streamsize>(bytecode.size()));
     output.close();
