@@ -6,7 +6,7 @@
 
 std::unordered_map<std::string, int> keyword_mapping = {{"var", 0}};
 
-std::vector<Token> tokenize(std::string src) {
+std::vector<Token> tokenize(const std::string& src) {
     std::vector<Token> result;
     size_t i = 0;
     size_t length = src.size();

@@ -1,11 +1,10 @@
-#include <stdexcept>
 #include <vector>
-#include <iostream>
 
 #include "../lexer/tokens.hpp"
 #include "astgen.hpp"
+#include "../../debug/errors.hpp"
 
-NodeId parse_expression(ParserState& state, AST& ast) {
+inline NodeId parse_expression(ParserState& state, AST& ast) {
     Token current = state.peek();
 
     if (current.type == tokens::c_int) {
@@ -15,7 +14,8 @@ NodeId parse_expression(ParserState& state, AST& ast) {
         Literal lit{(int)(current.value[0])};
         return ast.add_node(Node{lit});
     }
-    throw std::runtime_error("Bolt Syntax Error: unrecognized operation");
+    throwError("Bolt Syntax Error: unrecognized operation");
+    return 1;
 }
 
 AST createAST(std::vector<Token> tokens) {
@@ -32,14 +32,11 @@ AST createAST(std::vector<Token> tokens) {
                 Token name_token = state.consume(); // consume name
 
                 if (state.peek().type != tokens::equal) {
-                    throw std::runtime_error("Bolt Syntax Error: expected '=' after variable name");
+                    throwError("Bolt Syntax Error: expected '=' after variable name"); 
                 }
                 state.consume(); // consume =
 
-                VarDecl vardecl;
-                vardecl.name_index = ast.add_string(name_token.value);
-
-                vardecl.initializer = parse_expression(state, ast);
+                VarDecl vardecl{parse_expression(state, ast), ast.add_string(name_token.value)};
 
                 ast.add_node(Node{vardecl});
                 break;

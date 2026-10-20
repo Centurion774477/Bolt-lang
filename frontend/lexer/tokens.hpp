@@ -22,4 +22,4 @@ struct Token {
 
 extern std::unordered_map<std::string, int> keyword_mapping;
 
-std::vector<Token> tokenize(std::string src);
+std::vector<Token> tokenize(const std::string& src);

@@ -1,5 +1,7 @@
 #include <iostream>
 #include <chrono>
+#include <fstream>
+#include <sstream>
 
 #include "debug/print.hpp"
 #include "frontend/lexer/tokens.hpp"
@@ -7,9 +9,18 @@
 #include "backend/codegen/codegen.hpp"
 
 int main() {
+    std::ifstream input("bench.blt");
+    if (!input.is_open()) {
+        std::cerr<<"Bolt File Error: could't open 'bench.blt";
+    }
+
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    std::string content = buffer.str();
+
     auto lexstart = std::chrono::high_resolution_clock::now();
-    
-    auto tokens = tokenize("var name = 'a'"); // We only measure how it took to tokenize, not to show the tokens
+
+    auto tokens = tokenize(content);
 
     auto lexend = std::chrono::high_resolution_clock::now();
     
@@ -32,13 +43,24 @@ int main() {
     show(ast);
 
     auto genstart = std::chrono::high_resolution_clock::now();
-    generateBytecode(ast);
+    auto bytecode = generateBytecode(ast);
 
     auto genend = std::chrono::high_resolution_clock::now();
     auto gentime = std::chrono::duration_cast<std::chrono::nanoseconds>(genend - genstart).count();
 
+
+
     std::cout << "Codegen time: " << gentime << " nanosecons." << std::endl;
-    std::cout << "Or: " << gentime / 1000000.0 << " ms." << std::endl;  
+    std::cout << "Or: " << gentime / 1000000.0 << " ms." << std::endl;
+
+    std::ofstream output("main.bvm", std::ios::binary);
+    if (!output) {
+        return 1;
+    }
+    
+    output.write(reinterpret_cast<const char*>(bytecode.data()),
+                 static_cast<std::streamsize>(bytecode.size()));
+    output.close();
 
 
 

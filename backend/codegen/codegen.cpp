@@ -16,14 +16,14 @@ namespace {
     }
 
     void emit_u32(std::vector<uint8_t>& out, uint32_t v) {
-        out.push_back(static_cast<uint8_t>((v >> 0) & 0xFF));
-        out.push_back(static_cast<uint8_t>((v >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>((v >> 16) & 0xFF));
-        out.push_back(static_cast<uint8_t>((v >> 24) & 0xFF));
+        out.push_back((v >> 0) & 0xFF);
+        out.push_back((v >> 8) & 0xFF);
+        out.push_back((v >> 16) & 0xFF);
+        out.push_back((v >> 24) & 0xFF);
     }
 }
 
-int generateBytecode(const AST& ast, const std::string& path) {
+std::vector<uint8_t> generateBytecode(const AST& ast, const std::string& path) {
     std::vector<uint8_t> bytecode;
     std::vector<uint8_t> header;
     bytecode.reserve(ast.nodes.size() * 8);
@@ -45,18 +45,6 @@ int generateBytecode(const AST& ast, const std::string& path) {
         }, node.data);
     }
 
-    std::ofstream output(path, std::ios::binary);
-    if (!output) {
-        std::cerr << "Bolt File Error: couldn't open output file.\n";
-        return 1;
-    }
-    
-    output.write(reinterpret_cast<const char*>(header.data()),
-                 static_cast<std::streamsize>(header.size()));
-    output.write(reinterpret_cast<const char*>(bytecode.data()),
-                 static_cast<std::streamsize>(bytecode.size()));
-    output.close();
-
-    std::cout << "Bytecode written successfully.\n";
-    return 0;
+    header.insert(header.end(), bytecode.begin(), bytecode.end());
+    return header;
 }
