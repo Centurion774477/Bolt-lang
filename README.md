@@ -1,3 +1,5 @@
+![Bolt Logo](assets/logo.png)
+
 # Bolt Language
 
 A language made to be fast and simple.
